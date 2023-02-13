@@ -128,7 +128,30 @@ class NeedlemanWunsch:
         
         # TODO: Initialize matrix private attributes for use in alignment
         # create matrices for alignment scores, gaps, and backtracing
-        pass
+
+        n = len(seqA)+1
+        m = len(seqB)+1
+
+        self._align_matrix = np.zeros([n, m])
+
+        for i in range(1,n):
+            self._align_matrix[i,0] = self.gap_extend*i
+
+        for i in range(1,m):
+            self._align_matrix[0,i] = self.gap_extend*i
+
+        for i in range(1,n):
+            for j in range(1,m):
+                diagscore = self.sub_dict[(self._seqA[i-1], self._seqB[j-1])] + self._align_matrix[i-1,j-1]
+                vertscore = self.gap_extend + self._align_matrix[i-1, j]
+                horiscore = self.gap_extend + self._align_matrix[i, j-1]
+
+                self._align_matrix[i,j] = max(horiscore, vertscore, diagscore)
+
+        print(self._seqA)
+        print(self._seqB)
+
+        print(self._align_matrix)
 
         
         # TODO: Implement global alignment here
@@ -193,3 +216,10 @@ def read_fasta(fasta_file: str) -> Tuple[str, str]:
             elif is_header and not first_header:
                 break
     return seq, header
+
+
+#testing code
+seq1, _ = read_fasta("../data/test_seq1.fa")
+seq2, _ = read_fasta("../data/test_seq2.fa")
+nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-11, gap_extend=-1)
+nw.align(seq1,seq2)
