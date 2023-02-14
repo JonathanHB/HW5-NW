@@ -133,16 +133,18 @@ class NeedlemanWunsch:
         m = len(seqB)+1
 
         self._align_matrix = np.zeros([n, m])
-        self._gapA_matrix = np.ones([n, m])*self.gap_open #0 if gap does not start, self.gap_open if it does (except on the first row and column, which already include the gap opening penalty)
+        # 0 if gap does not start, self.gap_open if it does (except on the first row and column, which already include the gap opening penalty)
+        self._gapA_matrix = np.ones([n, m])*self.gap_open
         self._gapB_matrix = np.ones([n, m])*self.gap_open
         self._back_A = np.zeros([n,m])
         self._back_B = np.zeros([n,m])
 
-        tree = [[[0,0] for i in range(m)] for i in range(n)]
+        #tree = [[[0,0] for i in range(m)] for i in range(n)] #backwards pointers for debugging
 
         self._gapA_matrix[0, 0] = 0
         self._gapB_matrix[0, 0] = 0
 
+        #TODO: Implement global alignment here
 
         for i in range(1, n):
             self._align_matrix[i, 0] = self.gap_extend*(i-1) + self.gap_open
@@ -170,28 +172,38 @@ class NeedlemanWunsch:
                 #print(dvhscores)
                 #print(np.argsort(dvhscores))
 
-                if j == 1:
-                    print(f"{i}, {j}")
-                    print("diagonal: " + str(diagscore))
-                    print("vertical: " + str(vertscore))
-                    print("horizontal: " + str(horiscore))
+                # if j == 1:
+                #     print(f"{i}, {j}")
+                #     print("diagonal: " + str(diagscore))
+                #     print("vertical: " + str(vertscore))
+                #     print("horizontal: " + str(horiscore))
 
                 #a and b are probably [consistently] reversed here
                 if best_direction == 1:
                     self._gapB_matrix[i, j] = self.gap_extend
                     self._back_B[i, j] = 1
-                    tree[i][j] = [-1, 0]
+                    #tree[i][j] = [-1, 0]
 
                 elif best_direction == 2:
                     self._gapA_matrix[i, j] = self.gap_extend
                     self._back_A[i, j] = 1
-                    tree[i][j] = [0, -1]
+                    #tree[i][j] = [0, -1]
 
-                else:
-                    tree[i][j] = [-1, -1]
+                #else:
+                    #tree[i][j] = [-1, -1]
 
-        for k in tree:
-            print(k)
+        #debugging
+        #for k in tree:
+        #    print(k)
+
+        return self._backtrace()
+
+    def _backtrace(self) -> Tuple[float, str, str]:
+
+        self.alignment_score = self._align_matrix[-1,-1]
+
+        n = len(self._seqA)+1
+        m = len(self._seqB)+1
 
         self.seqA_align = []
         self.seqB_align = []
@@ -201,29 +213,20 @@ class NeedlemanWunsch:
         y = m-1 #B
 
         for i in range(max(m,n)-1):
-            # if x == 0 and y == 0:
-            #     break
-            # elif x==0:
-            #     self.seqB_align.append(self._seqB[0:y-1][::-1])
-            #     self.seqA_align.append("-"*(y-1))
-            #     break
-            # elif y==0:
-            #     self.seqA_align.append(self._seqA[0:x-1][::-1])
-            #     self.seqB_align.append("-"*(x-1))
-            #     break
 
-            print(f"{x}, {y}")
-            #if the matrix construction got here with a gap in
+            #print(f"{x}, {y}")
+            #if this pair is a gap
             if self._back_B[x,y] == 1:
-                print(f"A {x}, {y}")
+                #print(f"A {x}, {y}")
                 self.seqA_align.append(self._seqA[x-1])
                 self.seqB_align.append("-")
                 x-=1
             elif self._back_A[x,y] == 1:
-                print(f"B {x}, {y}")
+                #print(f"B {x}, {y}")
                 self.seqB_align.append(self._seqB[y-1])
                 self.seqA_align.append("-")
                 y-=1
+            #if this pair is a (mis)match
             else:
                 self.seqA_align.append(self._seqA[x-1])
                 self.seqB_align.append(self._seqB[y-1])
@@ -233,27 +236,20 @@ class NeedlemanWunsch:
         self.seqA_align = "".join(self.seqA_align)
         self.seqB_align = "".join(self.seqB_align)
 
-        print(self._seqA)
-        print(self._seqB)
+        # print(self._seqA)
+        # print(self._seqB)
+        #
+        # print(self.seqA_align)
+        # print(self.seqB_align)
+        #
+        # print(self._back_A)
+        # print(self._back_B)
+        #
+        # #print(self._gapA_matrix)
+        # #print(self._gapB_matrix)
+        #
+        # print(self._align_matrix)
 
-        print(self.seqA_align)
-        print(self.seqB_align)
-
-        print(self._back_A)
-        print(self._back_B)
-
-        #print(self._gapA_matrix)
-        #print(self._gapB_matrix)
-
-        print(self._align_matrix)
-
-        
-        # TODO: Implement global alignment here
-        pass      		
-        		    
-        return self._backtrace()
-
-    def _backtrace(self) -> Tuple[float, str, str]:
         """
         TODO
         
@@ -267,7 +263,6 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
 
         return (self.alignment_score, self.seqA_align, self.seqB_align)
 
@@ -313,7 +308,8 @@ def read_fasta(fasta_file: str) -> Tuple[str, str]:
 
 
 #testing code
-seq1, _ = read_fasta("../data/test_seq1.fa")
-seq2, _ = read_fasta("../data/test_seq2.fa")
+seq1, _ = read_fasta("../data/test_seq3.fa")
+seq2, _ = read_fasta("../data/test_seq4.fa")
 nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1)
-nw.align(seq1,seq2)
+c=nw.align(seq1,seq2)
+print(c)
