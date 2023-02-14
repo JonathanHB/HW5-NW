@@ -141,10 +141,11 @@ class NeedlemanWunsch:
 
         #tree = [[[0,0] for i in range(m)] for i in range(n)] #backwards pointers for debugging
 
+        #global alignment
+
+        #initialize corner values
         self._gapA_matrix[0, 0] = 0
         self._gapB_matrix[0, 0] = 0
-
-        #global alignment
 
         #initialize edge values
         for i in range(1, n):
@@ -169,9 +170,6 @@ class NeedlemanWunsch:
 
                 self._align_matrix[i, j] = max(diagscore, vertscore, horiscore)
 
-                dvhscores = [diagscore, vertscore, horiscore]
-                best_direction = np.argsort(dvhscores)[-1]
-
                 #debugging code---------------------------
                 #print(dvhscores)
                 #print(np.argsort(dvhscores))
@@ -183,6 +181,10 @@ class NeedlemanWunsch:
                 #-----------------------------------------
 
                 #fill in gap and backtrace matrices
+
+                #get the direction of the best upstream square to tell us which backtrace matrix square to fill
+                dvhscores = [diagscore, vertscore, horiscore]
+                best_direction = np.argsort(dvhscores)[-1]
 
                 #a and b may be [consistently] reversed here
                 if best_direction == 1:
@@ -222,25 +224,28 @@ class NeedlemanWunsch:
         for i in range(max(m,n)-1):
 
             #print(f"{x}, {y}")
-            #if this pair is a gap
+            #if this pair is a gap in B, move up the column
             if self._back_B[x,y] == 1:
                 #print(f"A {x}, {y}")
                 self.seqA_align.append(self._seqA[x-1])
                 self.seqB_align.append("-")
                 x-=1
+
+            #if this pair is a gap in A, move left along the row
             elif self._back_A[x,y] == 1:
                 #print(f"B {x}, {y}")
                 self.seqB_align.append(self._seqB[y-1])
                 self.seqA_align.append("-")
                 y-=1
 
-            #if this pair is a (mis)match
+            #if this pair is a (mis)match, move diagonally up and left
             else:
                 self.seqA_align.append(self._seqA[x-1])
                 self.seqB_align.append(self._seqB[y-1])
                 x-=1
                 y-=1
 
+        #join the lists and fix [flip] the order
         self.seqA_align = "".join(self.seqA_align)[::-1]
         self.seqB_align = "".join(self.seqB_align)[::-1]
 
@@ -314,11 +319,11 @@ def read_fasta(fasta_file: str) -> Tuple[str, str]:
                 break
     return seq, header
 
-
-#testing code
-seq1, _ = read_fasta("../data/test_seq3.fa")
-seq2, _ = read_fasta("../data/test_seq4.fa")
-nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1)
-c=nw.align(seq1,seq2)
-print(c)
-print(seq1)
+#
+# #testing code
+# seq1, _ = read_fasta("../data/test_seq3.fa")
+# seq2, _ = read_fasta("../data/test_seq4.fa")
+# nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1)
+# c=nw.align(seq1,seq2)
+# print(c)
+# print(seq1)
