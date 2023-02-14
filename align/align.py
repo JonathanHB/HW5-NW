@@ -133,23 +133,97 @@ class NeedlemanWunsch:
         m = len(seqB)+1
 
         self._align_matrix = np.zeros([n, m])
+        self._gapA_matrix = np.ones([n, m])*self.gap_open #0 if gap does not start, self.gap_open if it does (except on the first row and column, which already include the gap opening penalty)
+        self._gapB_matrix = np.ones([n, m])*self.gap_open
+        self._back_A = np.zeros([n,m])
+        self._back_B = np.zeros([n,m])
 
-        for i in range(1,n):
-            self._align_matrix[i,0] = self.gap_extend*i
+        tree = [[[0,0] for i in range(m)] for i in range(n)]
 
-        for i in range(1,m):
-            self._align_matrix[0,i] = self.gap_extend*i
+        self._gapA_matrix[0, 0] = 0
+        self._gapB_matrix[0, 0] = 0
 
-        for i in range(1,n):
-            for j in range(1,m):
-                diagscore = self.sub_dict[(self._seqA[i-1], self._seqB[j-1])] + self._align_matrix[i-1,j-1]
-                vertscore = self.gap_extend + self._align_matrix[i-1, j]
-                horiscore = self.gap_extend + self._align_matrix[i, j-1]
 
-                self._align_matrix[i,j] = max(horiscore, vertscore, diagscore)
+        for i in range(1, n):
+            self._align_matrix[i, 0] = self.gap_extend*(i-1) + self.gap_open
+            self._gapA_matrix[i, 0] = 0
+            self._gapB_matrix[i, 0] = 0
+
+        for i in range(1, m):
+            self._align_matrix[0, i] = self.gap_extend*(i-1) + self.gap_open
+            self._gapA_matrix[0, i] = 0
+            self._gapB_matrix[0, i] = 0
+
+
+        for i in range(1, n):
+            for j in range(1, m):
+                diagscore = self._align_matrix[i-1, j-1] + self.sub_dict[(self._seqA[i-1], self._seqB[j-1])]
+                vertscore = self._align_matrix[i-1, j] + self._gapA_matrix[i-1, j]
+                horiscore = self._align_matrix[i, j-1] + self._gapB_matrix[i, j-1]
+
+                self._align_matrix[i, j] = max(diagscore, vertscore, horiscore)
+
+                dvhscores = [diagscore, vertscore, horiscore]
+                best_direction = np.argsort(dvhscores)[-1]
+                #print(dvhscores)
+                #print(np.argsort(dvhscores))
+
+                print(f"{i}, {j}")
+                print("diagonal: "+str(diagscore))
+                print("vertical: "+str(vertscore))
+                print("horizontal: "+str(horiscore))
+
+                #a and b are probably [consistently] reversed here
+                if best_direction == 1:
+                    self._gapB_matrix[i, j] = self.gap_extend
+                    self._back_B[i, j] = 1
+                    tree[i][j] = [i-1, j]
+
+                elif best_direction == 2:
+                    self._gapA_matrix[i, j] = self.gap_extend
+                    self._back_A[i, j] = 1
+                    tree[i][j] = [i, j-1]
+
+                else:
+                    tree[i][j] = [i-1, j-1]
+
+        print(tree)
+
+        self.seqA_align = []
+        self.seqB_align = []
+
+        #initial position
+        x = n-1 #A
+        y = m-1 #B
+
+        for i in range(max(m,n)-1):
+            print(f"{x}, {y}")
+            #if the matrix construction got here with a gap in [B?]
+            if self._back_B[x,y] == 1:
+                self.seqA_align.append(self._seqA[x-1])
+                self.seqB_align.append("-")
+                x-=1
+            elif self._back_A[x,y] == 1:
+                self.seqB_align.append(self._seqB[y-1])
+                self.seqA_align.append("-")
+                y-=1
+            else:
+                self.seqA_align.append(self._seqA[x-1])
+                self.seqB_align.append(self._seqB[y-1])
+                x-=1
+                y-=1
 
         print(self._seqA)
         print(self._seqB)
+
+        print(self.seqA_align)
+        print(self.seqB_align)
+
+        print(self._back_A)
+        print(self._back_B)
+
+        print(self._gapA_matrix)
+        print(self._gapB_matrix)
 
         print(self._align_matrix)
 
@@ -221,5 +295,5 @@ def read_fasta(fasta_file: str) -> Tuple[str, str]:
 #testing code
 seq1, _ = read_fasta("../data/test_seq1.fa")
 seq2, _ = read_fasta("../data/test_seq2.fa")
-nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-11, gap_extend=-1)
+nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1)
 nw.align(seq1,seq2)
