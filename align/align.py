@@ -134,8 +134,8 @@ class NeedlemanWunsch:
 
         self._align_matrix = np.zeros([n, m])
         # 0 if gap does not start, self.gap_open if it does (except on the first row and column, which already include the gap opening penalty)
-        self._gapA_matrix = np.ones([n, m])*self.gap_open
-        self._gapB_matrix = np.ones([n, m])*self.gap_open
+        self._gapA_matrix = np.ones([n, m])*(self.gap_open + self.gap_extend)
+        self._gapB_matrix = np.ones([n, m])*(self.gap_open + self.gap_extend)
         self._back_A = np.zeros([n,m])
         self._back_B = np.zeros([n,m])
 
@@ -149,13 +149,13 @@ class NeedlemanWunsch:
 
         #initialize edge values
         for i in range(1, n):
-            self._align_matrix[i, 0] = self.gap_extend*(i-1) + self.gap_open
+            self._align_matrix[i, 0] = self.gap_extend*(i) + self.gap_open
             self._gapA_matrix[i, 0] = 0
             self._gapB_matrix[i, 0] = 0
             self._back_A[i, 0] = 1
 
         for i in range(1, m):
-            self._align_matrix[0, i] = self.gap_extend*(i-1) + self.gap_open
+            self._align_matrix[0, i] = self.gap_extend*(i) + self.gap_open
             self._gapA_matrix[0, i] = 0
             self._gapB_matrix[0, i] = 0
             self._back_B[0, i] = 1
@@ -321,9 +321,15 @@ def read_fasta(fasta_file: str) -> Tuple[str, str]:
 
 #
 # #testing code
-# seq1, _ = read_fasta("../data/test_seq3.fa")
-# seq2, _ = read_fasta("../data/test_seq4.fa")
+# seq1, _ = read_fasta("../data/test_seq1.fa")
+# seq2, _ = read_fasta("../data/test_seq2.fa")
 # nw = NeedlemanWunsch("../substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1)
 # c=nw.align(seq1,seq2)
+# print(nw._align_matrix)
 # print(c)
-# print(seq1)
+
+# # print(seq1)
+#
+# #seq3xseq4
+# #M[3-gap]QLIR[H/R]P
+# print(sum([5,-13, 5, 4, 4, 5, 0, 7]))

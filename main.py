@@ -28,8 +28,8 @@ def main():
     for i in seqs_nh:
         alignments.append(NeedlemanWunsch(f"./substitution_matrices/BLOSUM62.mat", gap_open=-10, gap_extend=-1).align(hs_seq, i))
         alnscores.append(alignments[-1][0])
-        #print(alignments[-1][1])
-        #print(alignments[-1][2])
+        print(alignments[-1][1])
+        print(alignments[-1][2])
 
     #sort by similarity and print results
     asort = np.flip(np.argsort(alnscores))
