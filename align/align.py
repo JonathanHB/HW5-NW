@@ -148,18 +148,20 @@ class NeedlemanWunsch:
             self._align_matrix[i, 0] = self.gap_extend*(i-1) + self.gap_open
             self._gapA_matrix[i, 0] = 0
             self._gapB_matrix[i, 0] = 0
+            self._back_A[i, 0] = 1
 
         for i in range(1, m):
             self._align_matrix[0, i] = self.gap_extend*(i-1) + self.gap_open
             self._gapA_matrix[0, i] = 0
             self._gapB_matrix[0, i] = 0
+            self._back_B[0, i] = 1
 
 
         for i in range(1, n):
             for j in range(1, m):
                 diagscore = self._align_matrix[i-1, j-1] + self.sub_dict[(self._seqA[i-1], self._seqB[j-1])]
-                vertscore = self._align_matrix[i-1, j] + self._gapA_matrix[i-1, j]
-                horiscore = self._align_matrix[i, j-1] + self._gapB_matrix[i, j-1]
+                vertscore = self._align_matrix[i-1, j] + self._gapB_matrix[i-1, j]
+                horiscore = self._align_matrix[i, j-1] + self._gapA_matrix[i, j-1]
 
                 self._align_matrix[i, j] = max(diagscore, vertscore, horiscore)
 
@@ -168,26 +170,28 @@ class NeedlemanWunsch:
                 #print(dvhscores)
                 #print(np.argsort(dvhscores))
 
-                print(f"{i}, {j}")
-                print("diagonal: "+str(diagscore))
-                print("vertical: "+str(vertscore))
-                print("horizontal: "+str(horiscore))
+                if j == 1:
+                    print(f"{i}, {j}")
+                    print("diagonal: " + str(diagscore))
+                    print("vertical: " + str(vertscore))
+                    print("horizontal: " + str(horiscore))
 
                 #a and b are probably [consistently] reversed here
                 if best_direction == 1:
                     self._gapB_matrix[i, j] = self.gap_extend
                     self._back_B[i, j] = 1
-                    tree[i][j] = [i-1, j]
+                    tree[i][j] = [-1, 0]
 
                 elif best_direction == 2:
                     self._gapA_matrix[i, j] = self.gap_extend
                     self._back_A[i, j] = 1
-                    tree[i][j] = [i, j-1]
+                    tree[i][j] = [0, -1]
 
                 else:
-                    tree[i][j] = [i-1, j-1]
+                    tree[i][j] = [-1, -1]
 
-        print(tree)
+        for k in tree:
+            print(k)
 
         self.seqA_align = []
         self.seqB_align = []
@@ -197,13 +201,26 @@ class NeedlemanWunsch:
         y = m-1 #B
 
         for i in range(max(m,n)-1):
+            # if x == 0 and y == 0:
+            #     break
+            # elif x==0:
+            #     self.seqB_align.append(self._seqB[0:y-1][::-1])
+            #     self.seqA_align.append("-"*(y-1))
+            #     break
+            # elif y==0:
+            #     self.seqA_align.append(self._seqA[0:x-1][::-1])
+            #     self.seqB_align.append("-"*(x-1))
+            #     break
+
             print(f"{x}, {y}")
-            #if the matrix construction got here with a gap in [B?]
+            #if the matrix construction got here with a gap in
             if self._back_B[x,y] == 1:
+                print(f"A {x}, {y}")
                 self.seqA_align.append(self._seqA[x-1])
                 self.seqB_align.append("-")
                 x-=1
             elif self._back_A[x,y] == 1:
+                print(f"B {x}, {y}")
                 self.seqB_align.append(self._seqB[y-1])
                 self.seqA_align.append("-")
                 y-=1
@@ -212,6 +229,9 @@ class NeedlemanWunsch:
                 self.seqB_align.append(self._seqB[y-1])
                 x-=1
                 y-=1
+
+        self.seqA_align = "".join(self.seqA_align)
+        self.seqB_align = "".join(self.seqB_align)
 
         print(self._seqA)
         print(self._seqB)
@@ -222,8 +242,8 @@ class NeedlemanWunsch:
         print(self._back_A)
         print(self._back_B)
 
-        print(self._gapA_matrix)
-        print(self._gapB_matrix)
+        #print(self._gapA_matrix)
+        #print(self._gapB_matrix)
 
         print(self._align_matrix)
 
